@@ -1,5 +1,5 @@
 def calculate_price():
-    return 200
+    return 300
 
 
 def checkout():
