@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Change Impact Analyzer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1020;
+            color: #e5e7eb;
+        }
+        header {
+            padding: 24px 8%;
+            border-bottom: 1px solid #263047;
+            background: #11182b;
+        }
+        header h1 { margin: 0; font-size: 24px; }
+        header p { color: #9ca3af; margin-bottom: 0; }
+        main { max-width: 850px; margin: 40px auto; padding: 0 20px; }
+        .card {
+            background: #151e32;
+            border: 1px solid #293650;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        label { display: block; margin: 18px 0 8px; }
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 7px;
+            border: 1px solid #37445e;
+            background: #0b1020;
+            color: white;
+        }
+        button {
+            margin-top: 22px;
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 7px;
+            background: #6366f1;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        .muted { color: #9ca3af; font-size: 14px; }
+        #results { white-space: pre-wrap; line-height: 1.8; }
+        .status { color: #a5b4fc; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AI Change Impact Analyzer</h1>
+        <p>Understand what your code changes might affect.</p>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>Analyze your code</h2>
+            <p class="muted">For now, analyze a Python file accessible to the local backend.</p>
+
+            <form id="analyzeForm">
+                <label for="filePath">Absolute path to Python file</label>
+                <input id="filePath"
+                    value="D:\AI-Change-Impact-Analyzer\backend\sample.py"
+                    required>
+
+                <label for="functionName">Changed function name</label>
+                <input id="functionName"
+                    value="calculate_price"
+                    required>
+
+                <button id="analyzeButton" type="submit">Analyze Changes</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>Analysis report</h2>
+            <p id="status" class="status">Ready to analyze.</p>
+            <div id="results">Your results will appear here.</div>
+        </section>
+    </main>
+
+    <script>
+        const form = document.getElementById("analyzeForm");
+        const button = document.getElementById("analyzeButton");
+        const status = document.getElementById("status");
+        const results = document.getElementById("results");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            button.disabled = true;
+            status.textContent = "Analyzing...";
+            results.textContent = "";
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        file_path: document.getElementById("filePath").value.trim(),
+                        changed_function: document.getElementById("functionName").value.trim()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || "Analysis failed.");
+                }
+
+                status.textContent = "Analysis completed";
+                results.textContent =
+                    "Changed function: " + data.changed_function +
+                    "\n\nPotentially affected functions:\n" +
+                    (data.potentially_affected_functions.length
+                        ? data.potentially_affected_functions.map(name => "• " + name).join("\n")
+                        : "No direct callers found.") +
+                    "\n\nImpact level: " + data.impact_level;
+            } catch (error) {
+                status.textContent = "Analysis failed";
+                results.textContent = error.message +
+                    "\n\nMake sure the FastAPI server is running.";
+            } finally {
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
